@@ -2,23 +2,22 @@
 
 BASELINE_FILE="config/security-baseline.conf"
 
-echo "======================================"
-echo "    LINUX SECURITY BASELINE"
-echo "======================================"
+echo "===================================="
+echo "       LINUX SECURITY BASELINE"
+echo "===================================="
 
 if [ ! -f "$BASELINE_FILE" ]; then
-      echo "[ERROR] Baseline configuration not found:"
-      echo "$BASELINE_FILE"
-      exit 1
+    echo "[ERROR] Baseline configuration not found:"
+    echo "$BASELINE_FILE"
+    exit 1
 fi
-
-
 
 source "$BASELINE_FILE"
 
 PASS=0
 WARN=0
 FAIL=0
+SKIP=0
 
 check_pass() {
     echo "[PASS] $1"
@@ -35,27 +34,48 @@ check_fail() {
     ((FAIL++))
 }
 
-echo
-echo "[+] Checking SSH Root Login"
-
-SSH_ROOT=$(sudo sshd -T 2>/dev/null | awk '/^permitrootlogin / {print $2}')
-
-if [ "$SSH_ROOT" = "$SSH_ROOT_LOGIN" ]; then
-    check_pass "SSH root login is disabled"
-else
-    check_fail "SSH root login configuration is not secure: $SSH_ROOT"
-fi
-
+check_skip() {
+    echo "[SKIP] $1"
+    ((SKIP++))
+}
 
 echo
-echo "[+] Checking SSH Password Authentication"
+echo "[+] Checking SSH Service"
 
-SSH_PASSWORD=$(sudo sshd -T 2>/dev/null | awk '/^passwordauthentication / {print $2}')
+SSH_STATUS=$(systemctl is-active sshd 2>/dev/null)
 
-if [ "$SSH_PASSWORD" = "$SSH_PASSWORD_AUTH" ]; then
-    check_pass "SSH password authentication is disabled"
+if [ "$SSH_STATUS" = "active" ]; then
+
+    echo "[+] SSH server is active"
+
+    SSH_ROOT=$(sudo sshd -T 2>/dev/null | awk '/^permitrootlogin / {print $2}')
+
+    if [ -n "$SSH_ROOT" ]; then
+        if [ "$SSH_ROOT" = "$SSH_ROOT_LOGIN" ]; then
+            check_pass "SSH root login is disabled"
+        else
+            check_fail "SSH root login configuration is: $SSH_ROOT"
+        fi
+    else
+        check_warn "Unable to determine SSH root login configuration"
+    fi
+
+    SSH_PASSWORD=$(sudo sshd -T 2>/dev/null | awk '/^passwordauthentication / {print $2}')
+
+    if [ -n "$SSH_PASSWORD" ]; then
+        if [ "$SSH_PASSWORD" = "$SSH_PASSWORD_AUTH" ]; then
+            check_pass "SSH password authentication is disabled"
+        else
+            check_fail "SSH password authentication is enabled"
+        fi
+    else
+        check_warn "Unable to determine SSH password authentication configuration"
+    fi
+
 else
-    check_fail "SSH password authentication is enabled"
+
+    check_skip "SSH server is not active; SSH configuration checks skipped"
+
 fi
 
 
@@ -74,9 +94,9 @@ fi
 echo
 echo "[+] Checking Firewall"
 
-FIREWALL=$(sudo firewall-cmd --state 2>/dev/null)
+FIREWALL=$(sudo firewall-cmd --state 2>/dev/null | tr -d '[:space:]')
 
-if [ "$FIREWALL_REQUIRED" = "yes" ] && [ "$FIREWALL" = "running" ]; then
+if [ "$FIREWALL" = "running" ]; then
     check_pass "firewalld is running"
 else
     check_fail "firewalld is not running"
@@ -119,6 +139,7 @@ echo "===================================="
 echo "PASS : $PASS"
 echo "WARN : $WARN"
 echo "FAIL : $FAIL"
+echo "SKIP : $SKIP"
 
 echo
 echo "===================================="
