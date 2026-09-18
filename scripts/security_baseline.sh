@@ -1,4 +1,17 @@
 #!/bin/bash
+# Load security baseline configuration
+
+CONFIG_FILE="$(dirname "$0")/../config/security-baseline.conf"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "[ERROR] Configuration file not found:"
+    echo "$CONFIG_FILE"
+    exit 1
+fi
+
+source "$CONFIG_FILE"
+
+echo "[+] Configuration loaded: $CONFIG_FILE"
 
 echo "=========================================="
 echo "       LINUX SECURITY BASELINE SCAN"
@@ -110,7 +123,7 @@ SUID_COUNT=$(sudo find / -xdev -perm -4000 -type f 2>/dev/null | wc -l)
 
 echo "SUID binaries detected: $SUID_COUNT"
 
-if [ "$SUID_COUNT" -lt 50 ]; then
+if [ "$SUID_COUNT" -lt "$MAX_SUID_COUNT" ]; then
     pass_check "SUID binary count appears within expected range"
 else
     warn_check "Large number of SUID binaries detected"
