@@ -1,0 +1,36 @@
+# ==========================================
+# Linux Security Audit Toolkit
+# Git Ignore Rules
+# ==========================================
+
+# Generated security reports
+reports/security-report.txt
+reports/security-report.json
+
+# Generated file integrity data
+reports/file-integrity-current.sha256
+reports/file-integrity-baseline.sha256
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# OS/editor files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE files
+.vscode/
+.idea/
+
+# Python cache - for future Python modules
+__pycache__/
+*.pyc
+
+# Environment/secrets
+.env
+.env.*
+!.env.example

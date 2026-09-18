@@ -1,0 +1,33 @@
+==========================================
+       LINUX SECURITY AUDIT REPORT
+==========================================
+
+Tool:
+Linux Security Audit Toolkit
+
+Purpose:
+Demonstration security assessment report.
+
+Example Results:
+
+[PASS] Firewall is running
+[PASS] SELinux is enforcing
+[PASS] auditd is running
+[PASS] Only root has UID 0
+
+[SKIP] SSH server is not running
+
+SUID binaries detected: 26
+[PASS] SUID count is within configured baseline
+
+==========================================
+              SUMMARY
+==========================================
+
+PASS : 5
+WARN : 0
+FAIL : 0
+SKIP : 1
+
+==========================================
+
