@@ -56,33 +56,49 @@ grep -vE '^[[:space:]]*(#|$)' "$CONFIG_FILE"
 echo
 echo "[6] BASELINE CHECK"
 
-RUNNING_SERVICES=$(systemctl list-units \
-    --type=service \
-    --state=running \
-    --no-legend \
-    --no-pager | awk '{print $1}' | sed 's/\.service$//')
-
 PASS_COUNT=0
 WARN_COUNT=0
+
+# Build approved service list
+APPROVED_SERVICES=$(grep -vE '^[[:space:]]*(#|$)' "$CONFIG_FILE")
+
+# Check approved services
+while read -r SERVICE; do
+
+    [ -z "$SERVICE" ] && continue
+
+    if echo "$RUNNING_SERVICES" | grep -qx "$SERVICE"; then
+        echo "[PASS] Approved service running: $SERVICE"
+        PASS_COUNT=$((PASS_COUNT + 1))
+    else
+        echo "[INFO] Approved service not running: $SERVICE"
+    fi
+
+done <<< "$APPROVED_SERVICES"
+
+
+echo
+echo "[7] UNAUTHORIZED RUNNING SERVICES"
 
 while read -r SERVICE; do
 
     [ -z "$SERVICE" ] && continue
-    [[ "$SERVICE" =~ ^# ]] && continue
 
-    if echo "$RUNNING_SERVICES" | grep -qx "$SERVICE"; then
-        echo "[PASS] $SERVICE is running and approved"
-        PASS_COUNT=$((PASS_COUNT + 1))
-    else
-        echo "[INFO] $SERVICE is approved but not currently running"
+    if echo "$APPROVED_SERVICES" | grep -qx "$SERVICE"; then
+        continue
     fi
 
-done < "$CONFIG_FILE"
+    echo "[WARN] Unauthorized service detected: $SERVICE"
+    WARN_COUNT=$((WARN_COUNT + 1))
+
+done <<< "$RUNNING_SERVICES"
+
 
 echo
-echo "[7] NETWORK LISTENER SUMMARY"
+echo "[8] NETWORK LISTENERS"
 
 sudo ss -lntup | grep LISTEN || echo "No TCP listeners detected."
+
 
 echo
 echo "=========================================="
@@ -90,7 +106,7 @@ echo "          SERVICE AUDIT SUMMARY"
 echo "=========================================="
 
 echo "Approved running services : $PASS_COUNT"
-echo "Warnings                  : $WARN_COUNT"
+echo "Unauthorized services     : $WARN_COUNT"
 
 echo
 echo "=========================================="
