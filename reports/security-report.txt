@@ -1,0 +1,29 @@
+==========================================
+       LINUX SECURITY AUDIT REPORT
+==========================================
+Generated: Fri Sep 18 10:50:21 PM IST 2026
+Host: Verma
+[1] SSH SECURITY
+[SKIP] SSH server is not running
+[2] FIREWALL SECURITY
+[PASS] firewalld is running
+[3] SELINUX SECURITY
+[PASS] SELinux is enforcing
+[4] AUDITD SECURITY
+[PASS] auditd is running
+[5] PRIVILEGED ACCOUNTS
+[PASS] Only root has UID 0
+[6] SUID SECURITY
+SUID binaries detected: 26
+[PASS] SUID count is within the current baseline
+==========================================
+              SUMMARY
+==========================================
+PASS : 5
+WARN : 0
+FAIL : 0
+SKIP : 1
+Report saved to: reports/security-report.txt
+==========================================
+          AUDIT REPORT COMPLETE
+==========================================
