@@ -1,147 +1,131 @@
 #!/bin/bash
 
-BASELINE_FILE="config/security-baseline.conf"
-
-echo "===================================="
-echo "       LINUX SECURITY BASELINE"
-echo "===================================="
-
-if [ ! -f "$BASELINE_FILE" ]; then
-    echo "[ERROR] Baseline configuration not found:"
-    echo "$BASELINE_FILE"
-    exit 1
-fi
-
-source "$BASELINE_FILE"
+echo "=========================================="
+echo "       LINUX SECURITY BASELINE SCAN"
+echo "=========================================="
 
 PASS=0
 WARN=0
 FAIL=0
-SKIP=0
 
-check_pass() {
+pass_check() {
     echo "[PASS] $1"
     ((PASS++))
 }
 
-check_warn() {
+warn_check() {
     echo "[WARN] $1"
     ((WARN++))
 }
 
-check_fail() {
+fail_check() {
     echo "[FAIL] $1"
     ((FAIL++))
 }
 
-check_skip() {
-    echo "[SKIP] $1"
-    ((SKIP++))
-}
 
 echo
-echo "[+] Checking SSH Service"
+echo "[1] SSH HARDENING"
 
-SSH_STATUS=$(systemctl is-active sshd 2>/dev/null)
+if systemctl is-active --quiet sshd; then
 
-if [ "$SSH_STATUS" = "active" ]; then
+    SSH_CONFIG=$(sudo sshd -T 2>/dev/null)
 
-    echo "[+] SSH server is active"
-
-    SSH_ROOT=$(sudo sshd -T 2>/dev/null | awk '/^permitrootlogin / {print $2}')
-
-    if [ -n "$SSH_ROOT" ]; then
-        if [ "$SSH_ROOT" = "$SSH_ROOT_LOGIN" ]; then
-            check_pass "SSH root login is disabled"
-        else
-            check_fail "SSH root login configuration is: $SSH_ROOT"
-        fi
+    if [ -z "$SSH_CONFIG" ]; then
+        warn_check "Unable to determine effective SSH configuration"
     else
-        check_warn "Unable to determine SSH root login configuration"
-    fi
 
-    SSH_PASSWORD=$(sudo sshd -T 2>/dev/null | awk '/^passwordauthentication / {print $2}')
-
-    if [ -n "$SSH_PASSWORD" ]; then
-        if [ "$SSH_PASSWORD" = "$SSH_PASSWORD_AUTH" ]; then
-            check_pass "SSH password authentication is disabled"
+        if echo "$SSH_CONFIG" | grep -q "^permitrootlogin no$"; then
+            pass_check "SSH root login disabled"
         else
-            check_fail "SSH password authentication is enabled"
+            fail_check "SSH root login is enabled"
         fi
-    else
-        check_warn "Unable to determine SSH password authentication configuration"
+
+        if echo "$SSH_CONFIG" | grep -q "^passwordauthentication no$"; then
+            pass_check "SSH password authentication disabled"
+        else
+            fail_check "SSH password authentication enabled"
+        fi
+
+        if echo "$SSH_CONFIG" | grep -q "^pubkeyauthentication yes$"; then
+            pass_check "SSH public-key authentication enabled"
+        else
+            warn_check "SSH public-key authentication not enabled"
+        fi
+
     fi
 
 else
-
-    check_skip "SSH server is not active; SSH configuration checks skipped"
-
+    echo "[INFO] SSH server is not running"
+    echo "[SKIP] SSH configuration checks"
 fi
 
-
 echo
-echo "[+] Checking SELinux"
+echo "[2] FIREWALL"
 
-SELINUX=$(getenforce 2>/dev/null)
-
-if [ "$SELINUX" = "$SELINUX_MODE" ]; then
-    check_pass "SELinux is enforcing"
+if sudo firewall-cmd --state 2>/dev/null | grep -q "running"; then
+    pass_check "firewalld is running"
 else
-    check_fail "SELinux mode is $SELINUX"
+    fail_check "firewalld is not running"
 fi
 
-
 echo
-echo "[+] Checking Firewall"
+echo "[3] SELINUX"
 
-FIREWALL=$(sudo firewall-cmd --state 2>/dev/null | tr -d '[:space:]')
+SELINUX_STATUS=$(getenforce 2>/dev/null)
 
-if [ "$FIREWALL" = "running" ]; then
-    check_pass "firewalld is running"
+if [ "$SELINUX_STATUS" = "Enforcing" ]; then
+    pass_check "SELinux is enforcing"
+elif [ "$SELINUX_STATUS" = "Permissive" ]; then
+    warn_check "SELinux is permissive"
 else
-    check_fail "firewalld is not running"
+    fail_check "SELinux is disabled or unavailable"
 fi
 
-
 echo
-echo "[+] Checking Auditd"
+echo "[4] AUDITD"
 
-AUDITD=$(systemctl is-active auditd 2>/dev/null)
-
-if [ "$AUDITD_REQUIRED" = "yes" ] && [ "$AUDITD" = "active" ]; then
-    check_pass "auditd is active"
+if systemctl is-active --quiet auditd; then
+    pass_check "auditd is running"
 else
-    check_fail "auditd is not active"
+    fail_check "auditd is not running"
 fi
 
-
 echo
-echo "[+] Checking UID 0 Accounts"
+echo "[5] ROOT ACCOUNTS"
 
-UID0=$(awk -F: '$3 == 0 {print $1}' /etc/passwd)
+ROOT_ACCOUNTS=$(awk -F: '$3 == 0 {print $1}' /etc/passwd)
+ROOT_COUNT=$(echo "$ROOT_ACCOUNTS" | wc -l)
 
-echo "$UID0"
-
-UID0_COUNT=$(echo "$UID0" | wc -l)
-
-if [ "$UID0_COUNT" -eq 1 ]; then
-    check_pass "Only one UID 0 account detected"
+if [ "$ROOT_COUNT" -eq 1 ]; then
+    pass_check "Only one UID 0 account detected: root"
 else
-    check_warn "Multiple UID 0 accounts detected"
+    warn_check "Multiple UID 0 accounts detected: $ROOT_ACCOUNTS"
 fi
 
+echo
+echo "[6] SUID BINARIES"
+
+SUID_COUNT=$(sudo find / -xdev -perm -4000 -type f 2>/dev/null | wc -l)
+
+echo "SUID binaries detected: $SUID_COUNT"
+
+if [ "$SUID_COUNT" -lt 50 ]; then
+    pass_check "SUID binary count appears within expected range"
+else
+    warn_check "Large number of SUID binaries detected"
+fi
 
 echo
-echo "===================================="
-echo "          SECURITY SUMMARY"
-echo "===================================="
+echo "=========================================="
+echo "             SCAN SUMMARY"
+echo "=========================================="
 
 echo "PASS : $PASS"
 echo "WARN : $WARN"
 echo "FAIL : $FAIL"
-echo "SKIP : $SKIP"
 
 echo
-echo "===================================="
-echo "       BASELINE SCAN COMPLETE"
-echo "===================================="
+echo "=========================================="
+echo "        SECURITY BASELINE COMPLETE"
+echo "=========================================="
