@@ -1,0 +1,18 @@
+{
+  "tool": "Linux Security Audit Toolkit",
+  "timestamp": "2026-09-18T22:58:15+05:30",
+  "host": "Verma",
+  "checks": {
+    "ssh": "SKIP",
+    "firewall": "PASS",
+    "selinux": "PASS",
+    "auditd": "PASS",
+    "uid_0_accounts": "PASS",
+    "suid": "PASS"
+  },
+  "details": {
+    "selinux_mode": "Enforcing",
+    "uid_0_accounts": "root",
+    "suid_count": 26
+  }
+}
