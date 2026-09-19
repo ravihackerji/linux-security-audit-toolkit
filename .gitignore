@@ -4,8 +4,10 @@
 # ==========================================
 
 # Generated security reports
+
 reports/security-report.txt
 reports/security-report.json
+reports/findings.txt
 
 # Generated file integrity data
 reports/file-integrity-current.sha256
