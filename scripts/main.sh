@@ -1,37 +1,43 @@
 #!/bin/bash
 
-# ==========================================
-# Linux Security Audit Toolkit
-# Main Controller
-# ==========================================
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+PASS=0
+FAIL=0
+SKIP=0
 
 echo "=========================================="
 echo "       LINUX SECURITY AUDIT TOOLKIT"
 echo "=========================================="
-
+echo "Host: $(hostname)"
+echo "Date: $(date)"
 echo
-echo "[+] Project:"
-echo "$PROJECT_ROOT"
-
-echo
-echo "[+] Starting security assessment..."
 
 run_module() {
     local MODULE="$1"
-    local DESCRIPTION="$2"
+    local NAME="$2"
 
     echo
-    echo "------------------------------------------"
-    echo "[+] $DESCRIPTION"
-    echo "------------------------------------------"
+    echo "=========================================="
+    echo "[+] $NAME"
+    echo "=========================================="
 
-    if [ -x "$SCRIPT_DIR/$MODULE" ]; then
-        "$SCRIPT_DIR/$MODULE"
+    if [ ! -f "$SCRIPT_DIR/$MODULE" ]; then
+        echo "[SKIP] Module not found: $MODULE"
+        SKIP=$((SKIP + 1))
+        return
+    fi
+
+    if [ ! -x "$SCRIPT_DIR/$MODULE" ]; then
+        chmod +x "$SCRIPT_DIR/$MODULE"
+    fi
+
+    if "$SCRIPT_DIR/$MODULE"; then
+        PASS=$((PASS + 1))
     else
-        echo "[SKIP] $MODULE not found or not executable"
+        FAIL=$((FAIL + 1))
+        echo "[FAIL] $NAME returned an error"
     fi
 }
 
@@ -46,9 +52,15 @@ run_module "security_baseline.sh" "Security Baseline"
 
 echo
 echo "=========================================="
+echo "             AUDIT SUMMARY"
+echo "=========================================="
+echo "Modules completed : $PASS"
+echo "Modules failed    : $FAIL"
+echo "Modules skipped   : $SKIP"
+echo
+echo "Reports directory:"
+echo "$PROJECT_ROOT/reports"
+echo
+echo "=========================================="
 echo "       SECURITY ASSESSMENT COMPLETE"
 echo "=========================================="
-
-echo
-echo "[+] Generated reports are stored in:"
-echo "$PROJECT_ROOT/reports"

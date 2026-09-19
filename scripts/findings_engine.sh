@@ -1,5 +1,51 @@
 #!/bin/bash
+#!/bin/bash
 
+# ==========================================
+# Linux Security Audit Toolkit
+# Findings Engine
+# ==========================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPORT_DIR="$PROJECT_ROOT/reports"
+
+FINDINGS_FILE="$REPORT_DIR/findings.txt"
+
+mkdir -p "$REPORT_DIR"
+
+# Start a fresh findings file
+> "$FINDINGS_FILE"
+
+add_finding() {
+    local ID="$1"
+    local CATEGORY="$2"
+    local SEVERITY="$3"
+    local TITLE="$4"
+    local EVIDENCE="$5"
+    local RECOMMENDATION="$6"
+
+    {
+        echo "=========================================="
+        echo "FINDING ID    : $ID"
+        echo "CATEGORY      : $CATEGORY"
+        echo "SEVERITY      : $SEVERITY"
+        echo "TITLE         : $TITLE"
+        echo
+        echo "EVIDENCE:"
+        echo "$EVIDENCE"
+        echo
+        echo "RECOMMENDATION:"
+        echo "$RECOMMENDATION"
+        echo
+        echo "STATUS        : OPEN"
+        echo "=========================================="
+        echo
+    } >> "$FINDINGS_FILE"
+}
+
+echo "Findings engine initialized."
+echo "Output: $FINDINGS_FILE"
 REPORT="reports/security-report.txt"
 
 mkdir -p reports
