@@ -2,59 +2,53 @@
 
 # ==========================================
 # Linux Security Audit Toolkit
-# Main Orchestrator
+# Main Controller
 # ==========================================
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SCRIPTS="$PROJECT_ROOT/scripts"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "=========================================="
-echo "     LINUX SECURITY AUDIT TOOLKIT"
+echo "       LINUX SECURITY AUDIT TOOLKIT"
 echo "=========================================="
+
 echo
-echo "Host       : $(hostname)"
-echo "User       : $(whoami)"
-echo "Date       : $(date)"
-echo "Project    : $PROJECT_ROOT"
+echo "[+] Project:"
+echo "$PROJECT_ROOT"
+
 echo
+echo "[+] Starting security assessment..."
 
 run_module() {
-    MODULE="$1"
+    local MODULE="$1"
+    local DESCRIPTION="$2"
 
     echo
-    echo "=========================================="
-    echo "Running: $MODULE"
-    echo "=========================================="
+    echo "------------------------------------------"
+    echo "[+] $DESCRIPTION"
+    echo "------------------------------------------"
 
-    if [ -x "$SCRIPTS/$MODULE" ]; then
-        "$SCRIPTS/$MODULE"
+    if [ -x "$SCRIPT_DIR/$MODULE" ]; then
+        "$SCRIPT_DIR/$MODULE"
     else
-        echo "[ERROR] Module not found or not executable:"
-        echo "$SCRIPTS/$MODULE"
+        echo "[SKIP] $MODULE not found or not executable"
     fi
 }
 
-run_module "system_audit.sh"
-run_module "user_audit.sh"
-run_module "network_audit.sh"
-run_module "process_audit.sh"
-run_module "log_audit.sh"
-run_module "service_audit.sh"
-run_module "persistence_audit.sh"
-run_module "file_integrity.sh"
-run_module "security_baseline.sh"
-run_module "findings_engine.sh"
-run_module "json_report.sh"
+run_module "system_audit.sh" "System Audit"
+run_module "user_audit.sh" "User & Privilege Audit"
+run_module "network_audit.sh" "Network Audit"
+run_module "process_audit.sh" "Process Audit"
+run_module "log_audit.sh" "Log Audit"
+run_module "service_audit.sh" "Service Audit"
+run_module "persistence_audit.sh" "Persistence Audit"
+run_module "security_baseline.sh" "Security Baseline"
 
 echo
 echo "=========================================="
-echo "       FULL SECURITY AUDIT COMPLETE"
+echo "       SECURITY ASSESSMENT COMPLETE"
 echo "=========================================="
 
 echo
-echo "Reports:"
-echo "  Text : $PROJECT_ROOT/reports/security-report.txt"
-echo "  JSON : $PROJECT_ROOT/reports/security-report.json"
-
-echo
-echo "Toolkit execution completed."
+echo "[+] Generated reports are stored in:"
+echo "$PROJECT_ROOT/reports"
