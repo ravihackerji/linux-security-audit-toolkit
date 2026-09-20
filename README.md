@@ -4,7 +4,7 @@ A practical Linux security auditing and host-hardening toolkit built as part of 
 
 The project automates common Linux security checks and produces useful information for security assessment, system hardening, and incident investigation.
 
-> **Project Status:** 🚧 In Development
+
 
 ---
 
